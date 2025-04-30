@@ -45,7 +45,7 @@ function App() {
         />
 
         <div className="text">
-          <h1>What's in SMF's Backpack?</h1>
+          <h1>What's in SMF's Backpack??</h1>
           <h2>
             <i>Please log in to remember.</i>
           </h2>
