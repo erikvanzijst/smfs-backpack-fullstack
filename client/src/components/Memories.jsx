@@ -44,7 +44,7 @@ const Memories = ({ token, setToken, userId, setUserId }) => {
             />
 
             <div className="prompt-all-memories">
-              <h1>What's in SMF's Backpack?</h1>
+              <h1>What's in SMF's Backpack???</h1>
               <h2>Scroll down to contribute and view memories!</h2>
               <CreateMemory
                 token={token}
