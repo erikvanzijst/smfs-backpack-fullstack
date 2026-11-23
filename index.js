@@ -1,16 +1,8 @@
 /* Backend "entry point" Express.js app with middleware and listening functionality */
 
-// Load environment variables from .env file
-// currently having JWT_SECRET error as undefined!
-import { config } from 'dotenv';
-config({ path: '../.env' });
-
-// Verify that JWT_SECRET is set
-const JWT_SECRET = process.env.JWT_SECRET || "secret";
-if (!process.env.JWT_SECRET) {
-  console.warn('JWT_SECRET is not defined, using fallback value.');
-}
-console.log('JWT_SECRET: located in root index.js', process.env.JWT_SECRET);
+// Load environment variables from a local .env file, if there is one. This
+// must stay the first import: later modules read process.env when loaded.
+import 'dotenv/config';
 
 // Import dependencies
 import express from "express"; 
@@ -30,14 +22,6 @@ server.use( // CORS middleware to allow cross-origin requests
     allowedHeaders: "Content-Type, Authorization",
   })
 );
-// Custom middleware for logging the body of incoming requests to the console
-server.use((req, res, next) => {
-  console.log("<____Body Logger START____>");
-  console.log(req.body);
-  console.log("<_____Body Logger END_____>");
-  next();
-});
-
 // Setup API routes
 server.use("/api", apiRouter); // Mount the API router
 

@@ -11,10 +11,9 @@ import pkg from 'jsonwebtoken'; // Import the entire jsonwebtoken module
 const { verify } = pkg; // Destructure to use the verify function
 
 import { getUserById } from '../db/index.js';
+import { JWT_SECRET } from '../config.js';
 
 const apiRouter = express.Router();
-const { JWT_SECRET } = process.env;
-// const JWT_SECRET = process.env.JWT_SECRET || "shhh";
 
 // Routes for api requests with paths for each file
 // Import the individual route modules
@@ -42,30 +41,22 @@ apiRouter.use(async (req, res, next) => {
         next();
       } else {
         next({
+          status: 401,
           name: 'AuthorizationHeaderError',
           message: 'Authorization token malformed',
         });
       }
     } catch ({ name, message }) {
-      next({ name, message });
+      next({ status: 401, name, message });
     }
   } else {
     next({
+      status: 401,
       name: 'AuthorizationHeaderError',
       message: `Authorization token must start with ${prefix}`,
     });
   }
 });
-
-// Log user if set
-apiRouter.use((req, res, next) => {
-  if (req.user) {
-    console.log('User is set:', req.user);
-  }
-
-  next(); // Move to the next middleware
-});
-
 
 // Set up the routes
 apiRouter.use('/users', usersRouter);

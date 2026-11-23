@@ -15,8 +15,9 @@ import pkg from "pg"; // Import the entire pg module
 const { Client } = pkg; // Extract the Client constructor
 import { hash } from "bcrypt";
 import { v4 } from "uuid";
-import jwt from "jsonwebtoken"; // for creating or managing tokens related to user actions.
-const JWT_SECRET = process.env.JWT_SECRET || "shhh";
+
+// Columns that are safe to return to clients: never include the password hash.
+const USER_COLUMNS = "id, username, dimension";
 
 const client = new Client({
   connectionString:
@@ -39,7 +40,7 @@ on frontend: be explicit regarding what personal data you are collecting
 // Get All Users: Retrieves all users from the database.
 const getAllUsers = async () => {
   try {
-    const SQL = `SELECT * FROM users`;
+    const SQL = `SELECT ${USER_COLUMNS} FROM users`;
     const response = await client.query(SQL);
     return response.rows;
   } catch (error) {
@@ -51,7 +52,7 @@ const getAllUsers = async () => {
 // Get User by ID: Retrieves a specific user by their ID.
 const getUserById = async (id) => {
   try {
-    const SQL = `SELECT * FROM users WHERE id = $1`;
+    const SQL = `SELECT ${USER_COLUMNS} FROM users WHERE id = $1`;
     const response = await client.query(SQL, [id]);
     return response.rows[0];
   } catch (error) {
@@ -60,6 +61,7 @@ const getUserById = async (id) => {
   }
 };
 
+// Includes the password hash: only for verifying credentials at login.
 const getUserByUsername = async (username) => {
   try {
     const SQL =` SELECT * FROM users WHERE username = $1`;
@@ -74,16 +76,13 @@ const getUserByUsername = async (username) => {
 // Create User: Inserts a new user into the database with their information.
 // removed email, display_name
 const createUser = async ({ username, password, dimension }) => {
-  const id = v4(); // Generate a new UUID for the user
-  const hashedPassword = await hash(password, 10); // Hash the password
-
   try {
     const res = await client.query(
       `
       INSERT INTO users (username, password, dimension) 
       VALUES ($1, $2, $3) 
       ON CONFLICT (username) DO NOTHING
-      RETURNING *
+      RETURNING ${USER_COLUMNS}
       `,
       [username, await hash(password, 10), dimension]
     );
@@ -95,12 +94,23 @@ const createUser = async ({ username, password, dimension }) => {
   }
 };
 
-// update User
+// update User: only whitelisted columns can be changed; a new password is hashed.
+const UPDATABLE_USER_FIELDS = ["username", "password", "dimension"];
+
 const updateUser = async (id, fields) => {
-  const setString = Object.keys(fields)
-    .map((key, index) => {
-      return `"${key}"=$${index + 1}`;
-    })
+  const updates = {};
+  for (const key of UPDATABLE_USER_FIELDS) {
+    if (fields[key] !== undefined) updates[key] = fields[key];
+  }
+  if (updates.password !== undefined) {
+    updates.password = await hash(updates.password, 10);
+  }
+  if (Object.keys(updates).length === 0) {
+    return getUserById(id);
+  }
+
+  const setString = Object.keys(updates)
+    .map((key, index) => `"${key}"=$${index + 1}`)
     .join(", ");
 
   const {
@@ -109,10 +119,10 @@ const updateUser = async (id, fields) => {
     `
     UPDATE users
     SET ${setString}
-    WHERE id=$${Object.keys(fields).length + 1}
-    RETURNING *;
+    WHERE id=$${Object.keys(updates).length + 1}
+    RETURNING ${USER_COLUMNS};
   `,
-    [...Object.values(fields), id]
+    [...Object.values(updates), id]
   );
 
   return user;

@@ -1,6 +1,4 @@
-import express from "express"; // import "dotenv/config";
-import { config } from "dotenv";
-import jwt from "jsonwebtoken"; // Change to ES Module import
+import express from "express";
 import requireUser from "./utils.js";
 
 import {
@@ -11,10 +9,6 @@ import {
   updateMemory,
   deleteMemory,
 } from "../db/index.js"; // Change to ES Module import
-
-// load environment variables
-config({ path: "../../.env" });
-console.log("JWT_SECRET: located in memories.js", process.env.JWT_SECRET);
 
 // create Memories router
 const memoriesRouter = express.Router();
@@ -66,10 +60,7 @@ memoriesRouter.get("/users/:userId/memories", async (req, res, next) => {
 });
 // this is a route function, "memories router"
 // POST MEMORY (CREATE MEMORY) http://localhost:3000/api/memories
-memoriesRouter.post("/", async (req, res, next) => {
-  // requireUser,
-  console.log("req.body", req.body);
-
+memoriesRouter.post("/", requireUser, async (req, res, next) => {
   const {
     title,
     imageUrl,
@@ -88,16 +79,6 @@ memoriesRouter.post("/", async (req, res, next) => {
   };
 
   try {
-
-        // Ensure req.user is defined and contains valid user ID
-    if (!req.user || !req.user.id) {
-      return next({
-        name: "UnauthorizedError",
-        message: "You must be logged in to create a memory",
-      });
-    }
-    console.log("memory data", memoryData);
-
     // Create the memory
     const memory = await createMemory(memoryData);
 
@@ -119,12 +100,28 @@ memoriesRouter.post("/", async (req, res, next) => {
   }
 });
 
+// Only the memory's owner may change or delete it: responds and returns false
+// otherwise, so the caller can bail out.
+const checkOwnership = async (memoryId, req, res) => {
+  const memory = await getMemoryById(memoryId);
+  if (!memory) {
+    res.status(404).send({ message: "Memory not found for this ID" });
+    return false;
+  }
+  if (memory.user_id !== req.user.id) {
+    res.status(403).send({ message: "You do not have permission to change this memory." });
+    return false;
+  }
+  return true;
+};
+
 // PATCH MEMORY (PARTIALLY UPDATE MEMORY)
-memoriesRouter.patch("/:memoryId", async (req, res, next) => {
+memoriesRouter.patch("/:memoryId", requireUser, async (req, res, next) => {
   const { memoryId } = req.params;
   const updates = req.body; // Get any properties provided in the request body
 
   try {
+    if (!(await checkOwnership(memoryId, req, res))) return;
     const updatedMemory = await updateMemory(memoryId, updates);
 
     if (updatedMemory) {
@@ -142,10 +139,11 @@ memoriesRouter.patch("/:memoryId", async (req, res, next) => {
 });
 
 // DELETE MEMORY BY ID
-memoriesRouter.delete('/:id', async (req, res) => {
+memoriesRouter.delete('/:id', requireUser, async (req, res) => {
   const { id } = req.params;
 
   try {
+    if (!(await checkOwnership(id, req, res))) return;
     await deleteMemory(id);
     res.status(204).send(); // No Content - Successfully deleted
   } catch (error) {

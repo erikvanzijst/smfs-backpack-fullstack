@@ -1,7 +1,6 @@
 import express from "express";
-import { config } from "dotenv"; // Ensure environment variables are loaded
-config({ path: "../../.env" }); // Load environment variables
 import requireUser from "./utils.js";
+import { JWT_SECRET } from "../config.js";
 import jwt from "jsonwebtoken"; // Change to ES Module import
 import bcrypt from "bcrypt";
 
@@ -9,7 +8,6 @@ const usersRouter = express.Router();
 usersRouter.use(express.json());
 
 import {
-  getAllUsers,
   getUserById,
   getUserByUsername,
   createUser,
@@ -18,19 +16,6 @@ import {
 } from "../db/index.js"; // Change to ES Module import
 
 /* ROUTE FUNCTIONS */
-
-// GET ALL USERS http://localhost:3000/api/users/
-usersRouter.get("/", async (req, res, next) => {
-  try {
-    const users = await getAllUsers();
-
-    res.send({
-      users,
-    });
-  } catch ({ ex }) {
-    next({ ex });
-  }
-});
 
 // GET USER DETAILS /users/me
 usersRouter.get("/me", requireUser, async (req, res, next) => {
@@ -79,10 +64,9 @@ usersRouter.post("/login", async (req, res, next) => {
     const user = await getUserByUsername(username);
 
     if (user && (await bcrypt.compare(password, user.password))) {
-      // Check if JWT_SECRET is defined
       const token = jwt.sign(
         { id: user.id, username },
-        process.env.JWT_SECRET || "secret",
+        JWT_SECRET,
         { expiresIn: "1w" }
       );
 
@@ -153,7 +137,7 @@ usersRouter.post("/register", async (req, res, next) => {
         username,
         dimension,
       },
-      process.env.JWT_SECRET || "shhh",
+      JWT_SECRET,
       {
         expiresIn: "1w",
       }
@@ -176,8 +160,6 @@ usersRouter.post("/register", async (req, res, next) => {
 usersRouter.patch("/:userId", requireUser, async (req, res, next) => {
   const { userId } = req.params;  // this will always be a string value, reqUser will return an integer
   const updates = req.body; 
-
-  console.log("***testing***", typeof userId, "//", typeof req.user.id); // testing strict comparisons of number vs string
 
   // Only permit the authenticated user to update their own record
   if (req.user.id !== +userId) { // !== === strict comparisons will always compare type and value
@@ -207,12 +189,12 @@ but will return a count of how many rows were deleted.
 usersRouter.delete("/:userId", requireUser, async (req, res, next) => {
   const { userId } = req.params;
 
-  try {
-    // Optional: Check that the authenticated user is allowed to delete the respective user
-    // if (req.user.id !== userId && !req.user.isAdmin) {
-    //   return res.status(403).send({ error: 'You do not have permission to delete this user.' });
-    // }
+  // Only permit the authenticated user to delete their own account
+  if (req.user.id !== +userId) {
+    return res.status(403).send({ error: "You do not have permission to delete this user." });
+  }
 
+  try {
     const deletionCount = await deleteUser(userId);
 
     if (deletionCount === 0) {
