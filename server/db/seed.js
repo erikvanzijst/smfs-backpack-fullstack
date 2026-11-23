@@ -17,6 +17,7 @@ import {
   updateMemory,
   deleteMemory,
 } from "../db/index.js";
+import { ensureSchema } from "./schema.js";
 
 const dropTables = async () => {
   try {
@@ -43,51 +44,7 @@ const dropTables = async () => {
 const createTables = async () => {
   try {
     console.log("Starting to build tables...");
-
-    /* MVP features; commented out features TBA
-    * removed: 
-    * from users(display_name varchar(255) NOT NULL, email VARCHAR(255) UNIQUE )
-    * ENUM--whether a post can be viewed publicly or privately CREATE TYPE visibility_enum AS ENUM ('public', 'private');
-    */
-    await client.query(
-      `
-      CREATE TABLE users(
-      id SERIAL PRIMARY KEY,
-      username VARCHAR (150) UNIQUE NOT NULL,
-      password VARCHAR (150) NOT NULL,
-      dimension VARCHAR(150) NOT NULL
-      );
-
-      CREATE TABLE memories(
-      id UUID PRIMARY KEY,
-      title VARCHAR(150),
-      image_url VARCHAR(255),
-      description TEXT,
-      user_id INT REFERENCES users(id) ON DELETE CASCADE,
-      dimension VARCHAR(150)
-      );
-      `
-      /* currently MVP; features TBA
-      * if email verification is to be implemented, research deployment process
-      CREATE TABLE favorites(
-      id UUID PRIMARY KEY,
-      user_id INTEGER REFERENCES users(id),
-      memory_id UUID REFERENCES memories(id),
-      CONSTRAINT unique_user_id_and_memory_id UNIQUE (user_id, memory_id)
-      );
-
-      CREATE TABLE tags (
-      id UUID PRIMARY KEY,
-      name varchar(255) UNIQUE NOT NULL
-      );
-
-      CREATE TABLE memory_tags (
-      id UUID PRIMARY KEY,
-      memory_id UUID REFERENCES memories(id),
-      tag_id UUID REFERENCES tags(id),
-      CONSTRAINT unique_memory_id_and_tag_id UNIQUE (memory_id, tag_id)
-      );*/
-    );
+    await ensureSchema(client);
     console.log("Finished building tables!");
   } catch (error) {
     console.error("Error building tables!", error);
@@ -486,15 +443,12 @@ async function testDB() {
 
 const runSeedAndTest = async () => {
   try {
-    // Connect to the client only once
-    await client.connect(); // Connect to the database first
-
     await rebuildDB(); // Call to drop, create tables and seed initial data
     await testDB(); // Call to run tests against the seeded database
   } catch (error) {
     console.error("Error during seed and test:", error);
   } finally {
-    await client.end(); // Close connection after everything is done
+    await client.end(); // Close the pool after everything is done
   }
 };
 

@@ -4,4 +4,11 @@ import react from '@vitejs/plugin-react'
 // https://vite.dev/config/
 export default defineConfig({
   plugins: [react()],
+  server: {
+    // In development the API runs separately; proxy it so the client can use
+    // the same relative /api path it uses in production.
+    proxy: {
+      '/api': process.env.API_PROXY_TARGET || 'http://localhost:3000',
+    },
+  },
 })

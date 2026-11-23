@@ -1,0 +1,6 @@
+# Local-development Dockerfiles: Freepod would build from a root Dockerfile
+# instead of detecting the stack, so keep them out of the upload.
+Dockerfile
+client/Dockerfile
+docker-compose.yml
+var/

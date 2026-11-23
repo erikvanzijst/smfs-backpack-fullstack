@@ -7,26 +7,28 @@
 */
 
 /* client setup, pg module using ES6 module syntax
-- contains Client constructor
-- connection string config'd to use env var for db URL w/ fallback string if the var is NULL/not defined
-- ssl config that alters based on app's env (production vs dev) to show secure connection dynamic handling
+- a connection pool rather than a single client: a pool replaces connections
+  that drop (restarts, a pooler in front of the database), a Client never does
+- connection string comes from DATABASE_URL, with a local development fallback
 */
 import pkg from "pg"; // Import the entire pg module
-const { Client } = pkg; // Extract the Client constructor
+const { Pool } = pkg; // Extract the Pool constructor
 import { hash } from "bcrypt";
 import { v4 } from "uuid";
 
 // Columns that are safe to return to clients: never include the password hash.
 const USER_COLUMNS = "id, username, dimension";
 
-const client = new Client({
+const client = new Pool({
   connectionString:
     process.env.DATABASE_URL ||
-    "postgres://ealejo@localhost:5432/schrodingers_backpack",
-  ssl:
-    process.env.NODE_ENV === "production"
-      ? { rejectUnauthorized: false }
-      : undefined,
+    "postgres://postgres:postgres@localhost:5432/smf",
+});
+
+// An idle connection that errors is discarded by the pool; without a listener
+// the error would crash the process.
+client.on("error", (error) => {
+  console.error("Idle database connection error:", error.message);
 });
 
 /*DEFINED CRUD FUNCTIONS BELOW!! 

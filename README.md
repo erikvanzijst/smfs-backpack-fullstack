@@ -11,6 +11,7 @@ SMF's Backpack is a full-stack app for authenticated users to perform CRUD opera
 - [Project Directory Structure](#project-directory-structure)
 - [Installation](#installation)
 - [Usage](#usage)
+- [Deployment](#deployment)
 - [Git Commit Message Guidelines](#git-commit-message-guidelines)
 - [Branches](#branches)
 - [How to Switch Branches](#switch-branches#)
@@ -131,6 +132,27 @@ npm run dev
 # at http://localhost:5173
 # CTRL + C to quit
 ```
+## Deployment
+
+The app is deployed to [Freepod](https://freepod.eu) as a single Node process:
+Express serves the API under `/api` and the built client from `client/dist`.
+
+- `npm run build` builds the client; `Procfile` starts `node index.js`.
+- The server creates its tables at startup if they do not exist
+  (`server/db/schema.js`), so a new database needs no setup. `npm run seed`
+  is for local development only: it **drops** the tables and loads demo data.
+- `DATABASE_URL` is provided by the platform. `JWT_SECRET` is required and is
+  set as a write-only var: `freepod var set JWT_SECRET --secret`.
+- The root `Dockerfile`s are for local development (`docker-compose.yml`) and
+  are excluded from the upload by `.freepodignore`.
+
+```bash
+freepod deploy
+```
+
+For local development, copy `.env.example` to `.env`. The Vite dev server
+proxies `/api` to the API on port 3000 (or `API_PROXY_TARGET`).
+
 ## Git Commit Message Guidelines
 
 1. **Add/Update/Delete/Remove**:
