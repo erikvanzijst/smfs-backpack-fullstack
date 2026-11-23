@@ -1,5 +1,6 @@
 {
   "$schema": "https://freepod.eu/api/products/custom/project-schema",
   "version": 2,
-  "deployment": "d50f6fc4-95a8-4fe6-84a6-6286492189d2"
+  "deployment": "d50f6fc4-95a8-4fe6-84a6-6286492189d2",
+  "icon": "static/asset-rick-morty-portal-v1.png"
 }
