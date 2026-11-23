@@ -15,7 +15,9 @@ import { client } from "./server/db/index.js";  // Import the database pool
 import { ensureSchema } from "./server/db/schema.js";
 import apiRouter from "./server/api/index.js"; // Router setup
 
-const CLIENT_DIST = path.join(path.dirname(fileURLToPath(import.meta.url)), "client", "dist");
+const ROOT = path.dirname(fileURLToPath(import.meta.url));
+const CLIENT_DIST = path.join(ROOT, "client", "dist");
+const STATIC_DIR = path.join(ROOT, "static");
 
 // Middleware setup
 const server = express(); // Initialize Express app
@@ -28,6 +30,10 @@ server.get("/healthz", (req, res) => res.send("ok"));
 // Setup API routes
 server.use("/api", apiRouter); // Mount the API router
 server.use("/api", (req, res) => res.status(404).json({ message: "Not found" }));
+
+// Locally archived memory images, referenced from the database as /static/<file>.
+// fallthrough: false answers a missing file with 404 instead of the client's index.html.
+server.use("/static", express.static(STATIC_DIR, { fallthrough: false, maxAge: "1d" }));
 
 // The built client, with index.html as the fallback for client-side routes
 server.use(express.static(CLIENT_DIST));
