@@ -19,5 +19,10 @@ export const ensureSchema = async (db) => {
       user_id INT REFERENCES users(id) ON DELETE CASCADE,
       dimension VARCHAR(150)
     );
+
+    -- Display order. Without one, rows come back in physical order, which
+    -- changes whenever a row is updated. Added to an existing table, it is
+    -- numbered in whatever order the rows happen to be stored in.
+    ALTER TABLE memories ADD COLUMN IF NOT EXISTS sort_order BIGSERIAL;
   `);
 };

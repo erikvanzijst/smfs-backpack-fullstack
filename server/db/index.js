@@ -150,7 +150,7 @@ const deleteUser = async (id) => {
 // get all exisiting memories 
 const getAllMemories = async () => {
   try {
-    const SQL = `SELECT * FROM memories`;
+    const SQL = `SELECT * FROM memories ORDER BY sort_order`;
     const response = await client.query(SQL);
     return response.rows;
   } catch (error) {
@@ -177,7 +177,8 @@ const getMemoriesByUser = async (userId) => {
   try {
     const SQL = `
     SELECT * FROM memories 
-    WHERE user_id = $1;`;
+    WHERE user_id = $1
+    ORDER BY sort_order;`;
     // users ID is the foreign key
     // get users Id from user table and match it to 
     const response = await client.query(SQL, [userId]);
